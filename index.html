@@ -34,11 +34,20 @@
         </div>
 
         <!-- 2. BANNER TIÊU ĐỀ -->
-        <div class="bg-blue-900 text-white text-center font-bold py-3.5 px-6 rounded-2xl text-sm md:text-base shadow-md mb-6 tracking-wide flex items-center justify-center gap-2">
+        <div class="bg-blue-900 text-white text-center font-bold py-3.5 px-6 rounded-2xl text-sm md:text-base shadow-md mb-4 tracking-wide flex items-center justify-center gap-2">
             <span>🏥</span> ĐỒNG HỒ THEO DÕI SỨC KHỎE
         </div>
 
-        <!-- 3. LƯỚI NỘI DUNG -->
+        <!-- 3. KHU VỰC THÔNG BÁO TRẠNG THÁI (MỚI THÊM) -->
+        <div id="statusBanner" class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-2xl text-xs md:text-sm font-semibold mb-6 flex items-center justify-between shadow-xs transition-all duration-300">
+            <div class="flex items-center gap-2">
+                <span id="statusIcon">ℹ️</span>
+                <span id="statusText">Đang khởi tạo kết nối với hệ thống IoT...</span>
+            </div>
+            <span id="statusTime" class="text-[11px] opacity-75 font-normal">--:--:--</span>
+        </div>
+
+        <!-- 4. LƯỚI NỘI DUNG -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             
             <!-- CỘT TRÁI: CHỈ SỐ Y TẾ & TÉ NGÃ -->
@@ -72,7 +81,6 @@
                     <span id="webGps" class="text-[11px] font-normal text-slate-500">Đang cập nhật...</span>
                 </div>
                 
-                <!-- Khung bản đồ co dãn tự động -->
                 <div class="w-full flex-grow min-h-[300px] md:min-h-[330px]">
                     <iframe id="webMapIframe" class="w-full h-full border-0" 
                         src="https://maps.google.com/maps?q=10.762622,106.660172&z=15&output=embed">
@@ -118,6 +126,28 @@
             }
         }
 
+        function updateStatusBanner(type, message) {
+            const banner = document.getElementById("statusBanner");
+            const icon = document.getElementById("statusIcon");
+            const text = document.getElementById("statusText");
+            const time = document.getElementById("statusTime");
+            
+            const now = new Date().toLocaleTimeString('vi-VN');
+            time.innerText = now;
+            text.innerText = message;
+
+            if (type === "danger") {
+                banner.className = "bg-red-50 border border-red-300 text-red-900 px-4 py-3 rounded-2xl text-xs md:text-sm font-semibold mb-6 flex items-center justify-between shadow-sm animate-pulse";
+                icon.innerText = "🚨";
+            } else if (type === "success") {
+                banner.className = "bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-2xl text-xs md:text-sm font-semibold mb-6 flex items-center justify-between shadow-xs";
+                icon.innerText = "✅";
+            } else {
+                banner.className = "bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-2xl text-xs md:text-sm font-semibold mb-6 flex items-center justify-between shadow-xs";
+                icon.innerText = "ℹ️";
+            }
+        }
+
         function fetchWebData() {
             fetch(THINGSPEAK_URL + "&_t=" + new Date().getTime())
                 .then(response => response.json())
@@ -150,6 +180,9 @@
                             textFall.innerText = "🚨 CẢNH BÁO TÉ NGÃ!";
                             cardFall.className = "bg-red-600 text-white rounded-2xl p-5 flex justify-between items-center shadow-lg animate-pulse";
 
+                            // Cập nhật thông báo khẩn cấp lên thanh trạng thái
+                            updateStatusBanner("danger", "CẢNH BÁO: Phát hiện sự cố té ngã! Vui lòng kiểm tra người dùng ngay lập tức.");
+
                             if (!isAlerting) {
                                 isAlerting = true;
                                 playAlarmSound();
@@ -164,11 +197,17 @@
                         } else {
                             textFall.innerText = "AN TOÀN";
                             cardFall.className = "bg-emerald-500 text-white rounded-2xl p-5 flex justify-between items-center shadow-sm";
+                            
+                            // Hiển thị trạng thái bình thường lên thanh thông báo
+                            updateStatusBanner("success", "Hệ thống đang hoạt động bình thường. Người dùng an toàn.");
                             isAlerting = false;
                         }
                     }
                 })
-                .catch(err => console.error("Lỗi kết nối ThingSpeak:", err));
+                .catch(err => {
+                    console.error("Lỗi kết nối ThingSpeak:", err);
+                    updateStatusBanner("danger", "Mất kết nối với máy chủ ThingSpeak. Đang thử kết nối lại...");
+                });
         }
 
         fetchWebData();
